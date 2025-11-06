@@ -30,10 +30,23 @@ class PostController extends Controller
 
             $query->whereIn('source_id', $sourceIds);
         }
+
+        $offset = $request->offset;
+        $limit = $request->limit;
+
+        $posts_count = $query->count();
+
+        if ($offset) {
+            $query->offset($offset);
+        }
+
+        if ($limit) {
+            $query->limit($limit);
+        }
         
         $posts = $query->orderBy('pubDate', 'desc')->get();
         
-        $result = $posts->map(function($post) {
+        $structured_posts = $posts->map(function($post) {
             return [
                 'id' => $post->_id,
                 'title' => $post->title,
@@ -46,6 +59,15 @@ class PostController extends Controller
                 'image' => $post->image,
             ];
         });
+
+        $result = [
+            'posts' => $structured_posts,
+            'meta' => [
+                'total' => $posts_count,
+                'limit' => $limit,
+                'offset' => $offset,
+            ]
+        ];
         
         return response()->json($result);
     }
