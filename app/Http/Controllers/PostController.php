@@ -43,6 +43,7 @@ class PostController extends Controller
                 'guid' => $post->guid,
                 'source' => $post->source ? $post->source->title : '',
                 'categories' => $post->category_names,
+                'image' => $post->image,
             ];
         });
         
@@ -84,6 +85,7 @@ class PostController extends Controller
             'guid' => $post->guid,
             'source' => $post->source,
             'categories' => $post->category_names,
+            'image'=> $post->image,
         ]);
     }
 }

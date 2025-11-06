@@ -37,6 +37,8 @@ class RssImportController extends Controller
             }
             
             if (empty($it['guid'])) continue;
+
+            $categoryIds = Category::WhereIn('name', $it['categories'])->pluck('id')->all();
             
             Post::updateOrCreate(
                 ['guid' => $it['guid']],
@@ -47,6 +49,7 @@ class RssImportController extends Controller
                     'pubDate' => $it['pubDate'],
                     'source_id' => $it['source_id'],
                     'category_ids' => $categoryIds,
+                    'image' => $it['image'],
                 ]
             );
             $upsertedCount++;

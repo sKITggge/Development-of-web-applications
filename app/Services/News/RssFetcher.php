@@ -9,7 +9,7 @@ use Exception;
 
 class RssFetcher
 {
-    protected string $url;
+    private string $url;
 
     public function __construct(string $url)
     {
@@ -51,7 +51,68 @@ class RssFetcher
         return $items;
     }
 
-    protected function getSourceId(string $url): string
+    private function normalizeRssItem(SimpleXMLElement $item, string $source_id): array
+    {
+        $categories = [];
+
+        if (isset($item->category)) {
+            foreach ($item->category as $cat) {
+                $categories[] = (string)$cat;
+            }
+        }
+
+        $image_url = $this->getImageUrl($item);
+
+        return [
+            'title' => (string) ($item->title ?? ''),
+            'link' => (string) ($item->link ?? ''),
+            'description' => (string) ($item->description ?? ''),
+            'pubDate' => $this->parseDate((string) ($item->pubDate ?? '')),
+            'guid' => (string) ($item->guid ?? $item->link ?? ''),
+            'source_id' => $source_id,
+            'categories' => $categories,
+            'image' => $image_url,
+        ];
+    }
+
+    private function normalizeAtomEntry(SimpleXMLElement $entry, string $source_id): array
+    {
+        $link = '';
+
+        if (isset($entry->link)) {
+            foreach ($entry->link as $l) {
+                $attrs = $l->attributes();
+                if (isset($attrs['href'])) { $link = (string) $attrs['href']; break; }
+            }
+        }
+
+        $categories = [];
+        if (isset($entry->category)) {
+            foreach ($entry->category as $cat) {
+                $attrs = $cat->attributes();
+                if (isset($attrs['term'])) {
+                    $categories[] = (string)$attrs['term'];
+                } elseif ((string)$cat) {
+                    $categories[] = (string)$cat;
+                }
+            }
+        }
+
+        $image_url = $this->getImageUrl($entry);
+
+        return [
+            'title' => (string) ($entry->title ?? ''),
+            'link' => $link,
+            'description' => (string) ($entry->summary ?? $entry->content ?? ''),
+            'pubDate' => $this->parseDate((string) ($entry->updated ?? $entry->published ?? '')),
+            'guid' => (string) ($entry->id ?? $link ?? ''),
+            'source_id' => $source_id,
+            'categories' => $categories,
+            'image' => $image_url,
+        ];
+    }
+
+    private function getSourceId(string $url): string
     {
         $db = DB::connection('mongodb');
         $collection = $db->selectCollection('sources');
@@ -65,57 +126,82 @@ class RssFetcher
         return (string) $source->_id;
     }
 
-    protected function normalizeRssItem(SimpleXMLElement $item, string $source_id): array
+    private function getImageUrl(SimpleXMLElement $item): string
     {
-        $categories = [];
-        if (isset($item->category)) {
-            foreach ($item->category as $cat) {
-                $categories[] = (string)$cat;
-            }
+        $media_content_image = $this->getMediaContentImage($item);
+        if ($media_content_image) {
+            return $media_content_image;
         }
-        return [
-            'title' => (string) ($item->title ?? ''),
-            'link' => (string) ($item->link ?? ''),
-            'description' => (string) ($item->description ?? ''),
-            'pubDate' => $this->parseDate((string) ($item->pubDate ?? '')),
-            'guid' => (string) ($item->guid ?? $item->link ?? ''),
-            'source_id' => $source_id,
-            'categories' => $categories,
-        ];
+
+        $media_thumbnail_image = $this->getMediaThumbnailImage($item);
+        if ($media_thumbnail_image) {
+            return $media_thumbnail_image;
+        }
+
+        $enclosureImage = $this->getEnclosureImage($item);
+        if ($enclosureImage) {
+            return $enclosureImage;
+        }
+
+        if (isset($item->image)) {
+            return (string)$item->image;
+        }
+
+        return '';
     }
 
-    protected function normalizeAtomEntry(SimpleXMLElement $entry, string $source_id): array
-    {
-        $link = '';
-        if (isset($entry->link)) {
-            foreach ($entry->link as $l) {
-                $attrs = $l->attributes();
-                if (isset($attrs['href'])) { $link = (string) $attrs['href']; break; }
-            }
-        }
-        $categories = [];
-        if (isset($entry->category)) {
-            foreach ($entry->category as $cat) {
-                $attrs = $cat->attributes();
-                if (isset($attrs['term'])) {
-                    $categories[] = (string)$attrs['term'];
-                } elseif ((string)$cat) {
-                    $categories[] = (string)$cat;
+    private function getMediaContentImage($item) {
+        $namespaces = $item->getNamespaces(true);
+    
+        if (isset($namespaces['media'])) {
+            $media = $item->children($namespaces['media']);
+            
+            if (isset($media->content)) {
+                $maxWidth = 0;
+                $bestImageUrl = null;
+            
+                foreach ($media->content as $content) {
+                    $attributes = $content->attributes();
+                    $width = (int)$attributes->width;
+                    $url = (string)$attributes->url;
+                    
+                    if ($width > $maxWidth) {
+                        $maxWidth = $width;
+                        $bestImageUrl = $url;
+                    }
                 }
             }
+            
+            return $bestImageUrl;
         }
-        return [
-            'title' => (string) ($entry->title ?? ''),
-            'link' => $link,
-            'description' => (string) ($entry->summary ?? $entry->content ?? ''),
-            'pubDate' => $this->parseDate((string) ($entry->updated ?? $entry->published ?? '')),
-            'guid' => (string) ($entry->id ?? $link ?? ''),
-            'source_id' => $source_id,
-            'categories' => $categories,
-        ];
     }
 
-    protected function parseDate(string $date): ?string
+    private function getMediaThumbnailImage(SimpleXMLElement $item): ?string
+    {
+        $namespaces = $item->getNamespaces(true);
+
+        if (isset($namespaces['media'])) {
+            $media = $item->children($namespaces['media']);
+            
+            if (isset($media->thumbnail)) {
+                $thumbnail = $media->thumbnail;
+                $attributes = $thumbnail->attributes();
+                return (string)$attributes->url;
+            }
+        }
+        
+        return null;
+    }
+
+    function getEnclosureImage($item) {
+        if (isset($item->enclosure)) {
+            $attributes = $item->enclosure->attributes();
+            return $attributes->url;
+        }
+        return null;
+    }
+
+    private function parseDate(string $date): ?string
     {
         if (empty($date)) return null;
         try {
