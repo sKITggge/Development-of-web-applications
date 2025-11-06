@@ -17,7 +17,8 @@ class Post extends Model
         'pubDate', 
         'guid', 
         'source_id', 
-        'category_ids'
+        'category_ids',
+        'image'
     ];
 
     public function source()
@@ -29,5 +30,5 @@ class Post extends Model
     {
         if (empty($this->category_ids)) return [];
         return Category::whereIn('_id', $this->category_ids)->pluck('name')->all();
-    }
+    } 
 }
