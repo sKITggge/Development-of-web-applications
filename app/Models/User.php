@@ -31,6 +31,8 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'tracked_categories' => 'array',
+            'tracked_sources' => 'array'
         ];
     }
 
