@@ -16,31 +16,19 @@ class PostController extends Controller
         $query = Post::with(['source']);
         
         if ($request->has('categories')) {
-            $categoryNames = is_array($request->categories) 
+            $categoryIds = is_array($request->categories) 
                 ? $request->categories 
                 : [$request->categories];
-            
-            $categories = Category::whereIn('name', $categoryNames)->get();
-            
-            if ($categories->isNotEmpty()) {
-                $categoryIds = $categories->pluck('_id')->toArray();
-                
-                $query->whereIn('category_ids', $categoryIds);
-            }
+
+            $query->whereIn('category_ids', $categoryIds);
         }
 
         if ($request->has('sources')) {
-            $sourceNames = is_array($request->sources) 
+            $sourceIds = is_array($request->sources) 
                 ? $request->sources 
                 : [$request->sources];
 
-            $sources = Source::whereIn('title', $sourceNames)->get();
-
-            if (!empty($sources)) {
-                $sourceIds = $sources->pluck('_id')->toArray();
-
-                $query->whereIn('source_id', $sourceIds);
-            }
+            $query->whereIn('source_id', $sourceIds);
         }
         
         $posts = $query->orderBy('pubDate', 'desc')->get();
