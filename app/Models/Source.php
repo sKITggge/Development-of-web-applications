@@ -7,7 +7,7 @@ use MongoDB\Laravel\Eloquent\Model;
 class Source extends Model
 {
     protected $connection = 'mongodb';
-    protected $collection = 'rss_sources';
+    protected $collection = 'sources';
     
     protected $fillable = [
         'url',
@@ -15,6 +15,7 @@ class Source extends Model
         'logo',
         'logo_width',
         'logo_height',
+        'published',
     ];
 
     public function posts()

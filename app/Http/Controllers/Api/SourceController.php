@@ -11,7 +11,7 @@ class SourceController extends Controller
 {
     public function index()
     {
-        $sources = Source::orderBy('title')->get();
+        $sources = Source::where('published', true)->orderBy('title')->get();
 
         $result = $sources->map(function ($source) {
             return [
@@ -21,6 +21,7 @@ class SourceController extends Controller
                 'logo' => $source->logo,
                 'logo_width' => $source->logo_width,
                 'logo_height' => $source->logo_height,
+                'created_at' => $source->created_at,
             ];
         });
 
@@ -36,6 +37,8 @@ class SourceController extends Controller
             'logo_width' => 'nullable|integer|min:0',
             'logo_height' => 'nullable|integer|min:0',
         ]);
+
+        $data['published'] = false;
 
         $source = Source::firstOrCreate(['url' => $data['url']], $data);
 
@@ -59,15 +62,5 @@ class SourceController extends Controller
             'logo_height' => $source->logo_height,
             'category_ids' => $categoryIds,
         ]);
-    }
-
-    public function destroy($id)
-    {
-        $source = Source::find($id);
-        if (! $source) {
-            return response()->json(['message' => 'Not Found'], 404);
-        }
-        $source->delete();
-        return response()->json(null, 204);
     }
 }

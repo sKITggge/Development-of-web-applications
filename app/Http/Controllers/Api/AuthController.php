@@ -26,12 +26,15 @@ class AuthController extends Controller
             ], 422);
         }
 
+        $role = $request->has('role') ? $request->get('role') : 'user';
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'tracked_categories' => [],
             'tracked_sources' => [],
+            'role' => $role,
         ]);
 
         $tokenResult = $user->createToken('auth_token');

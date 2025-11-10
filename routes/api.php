@@ -5,10 +5,13 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\Api\RssImportController;
 use App\Http\Controllers\Api\SourceController;
+use App\Http\Controllers\Api\ModeratorSourceController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\AuthController;
+
 use App\Http\Middleware\AuthenticateWithToken;
+use App\Http\Middleware\ModeratorAccess;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -27,6 +30,8 @@ Route::middleware([AuthenticateWithToken::class])->group(function () {
         Route::get('/', 'getTrackedSources');
         Route::put('/', 'updateTrackedSources');
     });
+
+    Route::middleware([ModeratorAccess::class])->apiResource('moderateSources', ModeratorSourceController::class);
 });
 
 Route::post('/rss/import', [RssImportController::class, 'import']);
