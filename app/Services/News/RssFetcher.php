@@ -150,7 +150,8 @@ class RssFetcher
         return '';
     }
 
-    private function getMediaContentImage($item) {
+    private function getMediaContentImage($item) 
+    {
         $namespaces = $item->getNamespaces(true);
     
         if (isset($namespaces['media'])) {
@@ -193,7 +194,8 @@ class RssFetcher
         return null;
     }
 
-    function getEnclosureImage($item) {
+    private function getEnclosureImage($item) 
+    {
         if (isset($item->enclosure)) {
             $attributes = $item->enclosure->attributes();
             return $attributes->url;

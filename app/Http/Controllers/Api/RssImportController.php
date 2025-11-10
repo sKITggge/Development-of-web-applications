@@ -38,7 +38,14 @@ class RssImportController extends Controller
             
             if (empty($it['guid'])) continue;
 
-            $categoryIds = Category::WhereIn('name', $it['categories'])->pluck('id')->all();
+            $categoryIds = [];
+
+            if (!empty($it['categories'])) {
+                foreach ($it['categories'] as $categoryName) {
+                    $category = Category::firstOrCreate(['name'=> $categoryName]);
+                    $categoryIds[] = $category->id;
+                }
+            }
             
             Post::updateOrCreate(
                 ['guid' => $it['guid']],

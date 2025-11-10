@@ -22,6 +22,7 @@ class ProfileController extends Controller
             'email' => $user->email,
             'tracked_categories' => $user->tracked_categories ?? [],
             'tracked_sources' => $user->tracked_sources ?? [],
+            'role' => $user->role,
             'created_at' => $user->created_at,
             ]
         );

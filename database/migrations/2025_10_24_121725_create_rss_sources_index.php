@@ -8,14 +8,14 @@ class CreateRssSourcesIndex extends Migration
     public function up()
     {
         DB::connection('mongodb')->getMongoDB()
-          ->selectCollection('rss_sources')
+          ->selectCollection('sources')
           ->createIndex(['url' => 1], ['unique' => true, 'background' => true]);
     }
 
     public function down()
     {
         DB::connection('mongodb')->getMongoDB()
-          ->selectCollection('rss_sources')
+          ->selectCollection('sources')
           ->dropIndex('url_1');
     }
 }

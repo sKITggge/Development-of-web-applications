@@ -20,7 +20,11 @@ class User extends Authenticatable
         'password',
         'tracked_categories',
         'tracked_sources',
+        'role'
     ];
+
+    const USER_ROLE = 'user';
+    const MODERATOR_ROLE = 'moderator';
 
     protected $hidden = [
         'password',
@@ -36,6 +40,16 @@ class User extends Authenticatable
         ];
     }
 
+    public function isModerator(): bool
+    {
+        return $this->role === $this::MODERATOR_ROLE;
+    }
+
+    public function isUser(): bool
+    {
+        return $this->role === $this::USER_ROLE;
+    }
+    
     public function tokens()
     {
         return $this->morphMany(PersonalAccessToken::class, 'tokenable');
