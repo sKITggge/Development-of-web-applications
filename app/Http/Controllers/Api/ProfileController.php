@@ -48,20 +48,13 @@ class ProfileController extends Controller
     public function updateTrackedCategories(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        $validator = Validator::make($request->all(), [
+
+        $validated = $request->validate([
             'category_ids' => 'array',
             'category_ids.*' => 'exists:categories,_id'
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $categoryIds = $request->category_ids;
+        $categoryIds = $validated['category_ids'];
         
         $user->tracked_categories = $categoryIds;
         $user->save();
@@ -91,20 +84,13 @@ class ProfileController extends Controller
     public function updateTrackedSources(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        $validator = Validator::make($request->all(), [
+
+        $validated = $request->validate([
             'source_ids' => 'array',
             'source_ids.*' => 'exists:sources,_id'
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $sourceIds = $request->source_ids;
+        $sourceIds = $validated['source_ids'];
         
         $user->tracked_sources = $sourceIds;
         $user->save();

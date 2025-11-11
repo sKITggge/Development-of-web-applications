@@ -75,7 +75,7 @@ class PostController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            "title" => "required|max:255",
+            "title" => "required|string|max:255",
             "link" => "required|string",
             "description" => "nullable|string",
             "pubDate" => "nullable|date",
