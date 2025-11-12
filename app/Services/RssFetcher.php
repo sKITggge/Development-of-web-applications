@@ -1,23 +1,29 @@
 <?php
 
-namespace App\Services\News;
+namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
+use App\Models\Source;
 use SimpleXMLElement;
 use Exception;
 
 class RssFetcher
 {
     private string $url;
+    private ?string $sourceId;
 
-    public function __construct(string $url)
+    public function __construct(string $url, ?string $sourceId = null)
     {
         $this->url = $url;
+        $this->sourceId = $sourceId;
     }
 
     public function fetch(): array
     {
+        if (empty($this->sourceId)) {
+            throw new Exception("Source not found for URL: {$this->url}");
+        }
+
         $resp = Http::get($this->url);
 
         if (!$resp->successful()) {
@@ -35,23 +41,21 @@ class RssFetcher
             throw new Exception('Invalid XML: ' . $err);
         }
 
-        $source = $this->getSourceId($this->url);
-
         $items = [];
         if (isset($xml->channel->item)) {
             foreach ($xml->channel->item as $item) {
-                $items[] = $this->normalizeRssItem($item, $source);
+                $items[] = $this->normalizeRssItem($item);
             }
         } elseif (isset($xml->entry)) {
             foreach ($xml->entry as $entry) {
-                $items[] = $this->normalizeAtomEntry($entry, $source);
+                $items[] = $this->normalizeAtomEntry($entry);
             }
         }
 
         return $items;
     }
 
-    private function normalizeRssItem(SimpleXMLElement $item, string $source_id): array
+    private function normalizeRssItem(SimpleXMLElement $item): array
     {
         $categories = [];
 
@@ -69,13 +73,13 @@ class RssFetcher
             'description' => (string) ($item->description ?? ''),
             'pubDate' => $this->parseDate((string) ($item->pubDate ?? '')),
             'guid' => (string) ($item->guid ?? $item->link ?? ''),
-            'source_id' => $source_id,
+            'source_id' => $this->sourceId,
             'categories' => $categories,
             'image' => $image_url,
         ];
     }
 
-    private function normalizeAtomEntry(SimpleXMLElement $entry, string $source_id): array
+    private function normalizeAtomEntry(SimpleXMLElement $entry): array
     {
         $link = '';
 
@@ -106,24 +110,10 @@ class RssFetcher
             'description' => (string) ($entry->summary ?? $entry->content ?? ''),
             'pubDate' => $this->parseDate((string) ($entry->updated ?? $entry->published ?? '')),
             'guid' => (string) ($entry->id ?? $link ?? ''),
-            'source_id' => $source_id,
+            'source_id' => $this->sourceId,
             'categories' => $categories,
             'image' => $image_url,
         ];
-    }
-
-    private function getSourceId(string $url): string
-    {
-        $db = DB::connection('mongodb');
-        $collection = $db->selectCollection('sources');
-
-        $source = $collection->findOne(['url' => $url]);
-
-        if (! $source) {
-            return '';
-        }
-
-        return (string) $source->_id;
     }
 
     private function getImageUrl(SimpleXMLElement $item): string
@@ -175,6 +165,8 @@ class RssFetcher
             
             return $bestImageUrl;
         }
+
+        return null;
     }
 
     private function getMediaThumbnailImage(SimpleXMLElement $item): ?string

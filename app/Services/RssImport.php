@@ -1,41 +1,35 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Services;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use App\Services\News\RssFetcher;
-use Illuminate\Support\Facades\DB;
 use App\Models\Post;
 use App\Models\Category;
 use App\Models\Source;
+use Illuminate\Support\Facades\Log;
 
-class RssImportController extends Controller
+class RssImport
 {
-    public function import(Request $request): JsonResponse
+    public function import(Source $source)
     {
-        $request->validate(['url' => 'required|url']);
-        $url = $request->input('url');
-
         try {
-            $fetcher = new RssFetcher($url);
+            $fetcher = new RssFetcher($source->url, $source->id);
             $items = $fetcher->fetch();
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to fetch RSS: '.$e->getMessage()], 422);
+            Log::error('Failed to fetch RSS', [
+                'source_id' => $source->id,
+                'url' => $source->url,
+                'error' => $e->getMessage()
+            ]);
+            return 0;
         }
 
         if (empty($items)) {
-            return response()->json(['imported' => 0, 'message' => 'No items found']);
+            return 0;
         }
 
         $upsertedCount = 0;
         
         foreach ($items as $it) {
-            if (empty($it['source_id'])) {
-                return response()->json(['error' => 'Source not recognized for url'], 422);
-            }
-            
             if (empty($it['guid'])) continue;
 
             $categoryIds = [];
@@ -62,10 +56,6 @@ class RssImportController extends Controller
             $upsertedCount++;
         }
 
-        return response()->json([
-            'imported_upserted' => $upsertedCount,
-            'source' => $url,
-            'items_processed' => count($items)
-        ]);
+        return $upsertedCount;
     }
 }
