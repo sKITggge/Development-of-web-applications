@@ -3,7 +3,6 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PostController;
-use App\Http\Controllers\Api\RssImportController;
 use App\Http\Controllers\Api\SourceController;
 use App\Http\Controllers\Api\ModeratorSourceController;
 use App\Http\Controllers\Api\CategoryController;
@@ -33,8 +32,6 @@ Route::middleware([AuthenticateWithToken::class])->group(function () {
 
     Route::middleware([ModeratorAccess::class])->apiResource('moderateSources', ModeratorSourceController::class);
 });
-
-Route::post('/rss/import', [RssImportController::class, 'import']);
 
 Route::apiResource('posts', PostController::class);
 
